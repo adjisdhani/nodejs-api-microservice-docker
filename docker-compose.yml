@@ -1,0 +1,60 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes" 
+      MYSQL_DATABASE: microservices_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  book-service:
+    build: ./services/book-service
+    container_name: book-service
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: 
+      DB_NAME: microservices_db
+    ports:
+      - "5001:5001"
+
+  review-service:
+    build: ./services/review-service
+    container_name: review-service
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: 
+      DB_NAME: microservices_db
+    ports:
+      - "5002:5002"
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    restart: always
+    depends_on:
+      - book-service
+      - review-service
+    ports:
+      - "5000:5000"
+
+volumes:
+  mysql_data:
